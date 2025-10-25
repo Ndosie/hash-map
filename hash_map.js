@@ -2,7 +2,7 @@ class HashMap {
 
     constructor() {
         this.capacity = 16
-        this.buckets = new Array(this.capacity)
+        this.buckets = Array.from({ length: this.capacity }, () => [])
         this.loadingFactor = 0.75
     }
 
@@ -11,53 +11,84 @@ class HashMap {
         const primeNumber = 31
 
         for (let i = 0; i < key.length; i++) {
-            hashcode = primeNumber * hashcode + key.charCodeAt(i)
+            hashcode = (primeNumber * hashcode + key.charCodeAt(i)) % this.capacity
         }
         return hashcode
     }
 
     set(key, value) {
-        if (this.length() > (this.capacity * this.loadingFactor)) {
+        const filledBuc = this.buckets.filter(bucket => bucket.length !== 0)
+        if (filledBuc.length > (this.capacity * this.loadingFactor)) {
+            this.buckets = [...this.buckets, ...Array.from({length: this.capacity}, () => [])]
             this.capacity *= 2
-            this.buckets.length = this.capacity
         }
         const hashcode = this.hash(key)
-        this.buckets[hashcode] = { key, value }
+        const bucket = this.buckets[hashcode]
+        if (bucket.length !== 0) {
+            for (let item of bucket) {
+                if (item.key === key) {
+                    item.value = value
+                    return
+                }
+            }
+        }
+        this.buckets[hashcode].push({ key, value })
     }
 
     get(key) {
         const hashcode = this.hash(key)
-        return this.buckets[hashcode] ? this.buckets[hashcode] : null
+        const bucket = this.buckets[hashcode]
+        for (let item of bucket) {
+            if (item.key === key) return item
+        }
+        return null
     }
 
     has(key) {
         const hashcode = this.hash(key)
-        return this.buckets[hashcode] ? true : false
+        const bucket = this.buckets[hashcode]
+        for (let item of bucket) {
+            if (item.key === key) return true
+        }
+        return false
     }
 
     remove(key) {
         const hashcode = this.hash(key)
-        if (this.buckets[hashcode]){
-            this.buckets[hashcode] = undefined
-            this.length--
-            return true
+        const bucket = this.buckets[hashcode]
+        if (bucket.length !== 0){
+            let i = 0
+            for (let item of bucket) {
+                if (item.key === key) {
+                    bucket.splice(i, 1)
+                    return true
+                }
+                i++
+            }
         }
         return false
     }
 
     length() {
-        return this.buckets.filter(bucket => bucket !== undefined).length
+        let length = 0
+        for (let bucket of this.buckets) {
+            length += bucket.length
+        }
+        return length
     }
 
     clear() {
-        this.buckets = new Array(16)
-        this.length = 0
+        this.buckets = Array.from({ length: 16 }, () => [])
     }
 
     keys() {
         const keys = []
         for (let bucket of this.buckets) {
-            if (bucket) keys.push(bucket.key)
+            if (bucket.length !== 0) {
+                for (let item of bucket) {
+                    keys.push(item.key)
+                }
+            } 
         }
         return keys
     }
@@ -65,7 +96,11 @@ class HashMap {
     values() {
         const values = []
         for (let bucket of this.buckets) {
-            if (bucket) values.push(bucket.value)
+            if (bucket.length !== 0) {
+                for (let item of bucket) {
+                    values.push(item.value)
+                }
+            }
         }
         return values
     }
@@ -73,7 +108,11 @@ class HashMap {
     entries() {
         const entries = []
         for (let bucket of this.buckets) {
-            if(bucket) entries.push([bucket.key, bucket.value])
+            if (bucket.length !== 0) {
+                for (let item of bucket) {
+                    entries.push([item.key, item.value])
+                }
+            } 
         }
         return entries
     }
